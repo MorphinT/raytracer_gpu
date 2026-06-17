@@ -27,7 +27,7 @@ En particulier, `lambertian_exemple` est commenté de manière à décrire les d
 
 ## Instructions minimales
 
-```cpp<numberLines>
+```cpp{numberLines}
 vector<Object> world;
 
 float im_ratio = 1.f;
