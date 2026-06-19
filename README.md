@@ -1,4 +1,8 @@
-Ce projet C++ permet de faire de la synthèse d'images (au format .ppm) grâce au raytracing. Cette version est destinée à tourner sur un GPU. Plus particulièrement, il fonctionne grâce à OpenAcc, et nécessite donc une carte graphique NVIDIA.
+Ce projet C++ permet de faire de la synthèse d'images (au format .ppm) grâce au raytracing.
+Cette version est destinée à tourner sur un GPU.
+Plus particulièrement, il fonctionne grâce à OpenAcc, et nécessite donc une carte graphique NVIDIA.
+
+Pour plus d'informations sur la manière dont fonctionne le raytracing et sur l'implémentation de l'algorithme, je vous invite à consulter le fichier `Rapport.pdf`.
 
 # Lancer le programme
 Pour lancer le programme (une fois que la description de l'image à générer a été faite au programme dans le code), il faut d'abord compiler.
