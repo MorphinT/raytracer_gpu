@@ -28,7 +28,7 @@ struct Lambertian {
     Lambertian(Color color) : albedo(color) {}
 
     // Calcule le rayon réfléchi et la couleur renvoyée
-    void scatter(const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const;
+    bool scatter(const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const;
 };
 
 struct Metal {
@@ -52,7 +52,7 @@ struct Dielectric {
     Dielectric(float n) : n(n) {}
 
     // Calcul le rayon réfracté et la couleur émise
-    void scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered) const;
+    bool scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered) const;
 };
 
 struct Diffuse_light {
@@ -83,6 +83,10 @@ struct Material {
     };
 
     Material &operator=(const Material &mat);
+
+    bool scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const;
+
+    [[nodiscard]] Color emitted() const;
 };
 
 #pragma acc routine seq
@@ -107,6 +111,31 @@ inline Material &Material::operator=(const Material &mat) {
     }
 
     return *this;
+}
+
+#pragma acc routine seq
+inline bool Material::scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const {
+    switch (type) {
+        case LAMBERTIAN:
+            return lambertian.scatter(rec, attenuation, scattered, rng);
+        case METAL:
+            return metal.scatter(r_in, rec, attenuation, scattered, rng);
+        case DIELECTRIC:
+            return dielectric.scatter(r_in, rec, attenuation, scattered);
+        default:
+			attenuation = Color(1, 1, 1);
+            return false;
+    }
+}
+
+#pragma acc routine seq
+inline Color Material::emitted() const {
+    switch (type) {
+        case DIFFUSE_LIGHT:
+            return diffuse_light.emitted();
+        default:
+            return {0, 0, 0};
+    }
 }
 
 // Création d'une texture de lambertien
@@ -153,7 +182,7 @@ inline Material create_diffuse_light(Color color) {
 struct HitRecord {
     Point3 p; // Point d'intersection rayon objet
     Vec3 normal; // Normale à la surface d'intersection
-    float t; // Paramètre du point d'intersection sur le rayon
+    float t; // Paramètre du point d'intersection sur le rayon incident
     bool front_face; // Indique si l'intersection a lieu sur la face avant / extérieure ou sur la face arrière / intérieure de l'objet
     Material mat; // Matériau de l'objet intersecté
 
@@ -168,7 +197,7 @@ inline void HitRecord::set_sens_normal(const Ray &ray, const Vec3 &normal_sortan
 }
 
 #pragma acc routine seq
-inline void Lambertian::scatter(const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const {
+inline bool Lambertian::scatter(const HitRecord &rec, Color &attenuation, Ray &scattered, RNG &rng) const {
     // Création d'une base locale
     OBN obn;
     obn.build_from_v(rec.normal);
@@ -179,6 +208,8 @@ inline void Lambertian::scatter(const HitRecord &rec, Color &attenuation, Ray &s
 
     // Indique la couleur de l'objet
     attenuation = albedo;
+
+    return true;
 }
 
 #pragma acc routine seq
@@ -199,7 +230,7 @@ inline bool Metal::scatter(const Ray &r_in, const HitRecord &rec, Color &attenua
 }
 
 #pragma acc routine seq
-inline void Dielectric::scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered) const {
+inline bool Dielectric::scatter(const Ray &r_in, const HitRecord &rec, Color &attenuation, Ray &scattered) const {
     attenuation = Color(1.0f, 1.0f, 1.0f);
 
     // Détermine l'indice de réflexion à utiliser en fonction de si le rayon entre ou sort du milieu transparent
@@ -218,6 +249,8 @@ inline void Dielectric::scatter(const Ray &r_in, const HitRecord &rec, Color &at
 
     // Créé le rayon qui a rebondi
     scattered = Ray(rec.p, direction);
+
+    return true;
 }
 
 #endif //TIPE_RAYTRACING_GPU_MATERIAL_HPP

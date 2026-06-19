@@ -65,7 +65,7 @@ struct AABB {
     for (int i = 0; i < 3; i++) {
         const Interval &axis = axis_interval(i);
         // S'il n'y a pas de progression du rayon suivant l'axe, on vérifie si le plan de propagation coupe l'AABB
-        if (dir[i] < 0.000001f) {
+        if (fabsf(dir[i]) < 0.000001f) {
             if (orig[i] < axis.min or orig[i] > axis.max) return false;
             continue;
         }

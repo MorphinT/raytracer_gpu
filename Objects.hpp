@@ -322,8 +322,8 @@ inline bool Object::hit(const Ray &ray, Interval int_valid, HitRecord &hit_recor
     if (!rotation) return hit_stat(ray, int_valid, hit_record);
 
     // Rotation du rayon incident
-    Vec3 origin = rotatex(rotatey(rotatez(ray.origin, cos_rotz, -sin_rotz), cos_roty, -sin_roty), cos_rotx, -sin_rotx);
-    Vec3 direction = rotatex(rotatey(rotatez(ray.direction, cos_rotz, -sin_rotz), cos_roty, -sin_roty), cos_rotx, -sin_rotx);
+    Vec3 origin = rotatez(rotatey(rotatex(ray.origin, cos_rotx, -sin_rotx), cos_roty, -sin_roty), cos_rotz, -sin_rotz);
+    Vec3 direction = rotatez(rotatey(rotatex(ray.direction, cos_rotx, -sin_rotx), cos_roty, -sin_roty), cos_rotz, -sin_rotz);
     Ray rotated_ray = Ray(origin, direction);
 
     if (!hit_stat(rotated_ray, int_valid, hit_record)) return false;

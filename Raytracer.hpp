@@ -14,85 +14,61 @@
 // Calcul la couleur du rayon ray avec BVH actif
 #pragma acc routine seq
 inline Color rayColorBVH(const Ray &ray, Object objects[], const BVHNode *nodes, RNG &rng, const Camera &camera, int root) {
-    Ray current_ray = ray;
-    Color color(1, 1, 1);
+	Ray current_ray = ray;
+	Color attenuation(1, 1, 1);
+	Color accumulation(0, 0, 0);
 
 	// Déroulé sans récursivité de l'algorithme de raytracing
-    for (int depth = 0; depth < camera.max_depth; depth++) {
-        HitRecord rec{};
+	for (int depth = 0; depth < camera.max_depth; depth++) {
+		HitRecord rec{};
 
-    	// Retour de la couleur de l'arrière-plan si le rayon n'intersecte aucun objet
-        if (!traverse_bvh(current_ray, nodes, objects, root, rec)) {
-            return color * background_color(camera, current_ray.direction);
-        }
+		// Retour de la couleur de l'arrière-plan si le rayon n'intersecte aucun objet
+		if (!traverse_bvh(current_ray, nodes, objects, root, rec)) {
+			return accumulation + attenuation * background_color(camera, current_ray.direction);
+		}
 
-    	// Actualisation de la couleur en fonction du matériau de l'objet intersecté
-        Color attenuation(0, 0, 0);
-        switch (rec.mat.type) {
-            case LAMBERTIAN:
-                rec.mat.lambertian.scatter(rec, attenuation, current_ray, rng);
-                color *= attenuation;
-                break;
-            case METAL: {
-                if (!rec.mat.metal.scatter(current_ray, rec, attenuation, current_ray, rng)) {
-                    return {0, 0, 0};
-                }
-                color *= attenuation;
-            }
-                break;
-            case DIELECTRIC:
-                rec.mat.dielectric.scatter(current_ray, rec, attenuation, current_ray);
-                color *= attenuation;
-                break;
-            case DIFFUSE_LIGHT:
-                return color * rec.mat.diffuse_light.emitted();
-        }
-    }
+		// Actualisation de la couleur en fonction du matériau de l'objet intersecté
+		Color fac_attenuation(1, 1, 1);
+		if (!rec.mat.scatter(current_ray, rec, fac_attenuation, current_ray, rng)) {
+			return accumulation + rec.mat.emitted() * attenuation;
+		}
 
-	// Si le rayon n'a atteint aucune source de lumière ni l'arrière-plan, le rayon est noir
-    return {0, 0, 0};
+		accumulation += rec.mat.emitted() * attenuation;
+		attenuation *= fac_attenuation;
+	}
+
+	// On retourne la couleur accumulée
+	return accumulation;
 }
 
 // Calcul la couleur du rayon ray sans BVH
 #pragma acc routine seq
 inline Color rayColorLin(const Ray &ray, Object objects[], RNG &rng, const Camera &camera, int nb_objects) {
-    Ray current_ray = ray;
-    Color color(1, 1, 1);
+	Ray current_ray = ray;
+	Color attenuation(1, 1, 1);
+	Color accumulation(0, 0, 0);
 
 	// Déroulé sans récursivité de l'algorithme de raytracing
-    for (int depth = 0; depth < camera.max_depth; depth++) {
-        HitRecord rec{};
+	for (int depth = 0; depth < camera.max_depth; depth++) {
+		HitRecord rec{};
 
-    	// Retour de la couleur de l'arrière-plan si le rayon n'intersecte aucun objet
-        if (!traverse(current_ray, objects, nb_objects, rec)) {
-            return color * background_color(camera, current_ray.direction);
-        }
+		// Retour de la couleur de l'arrière-plan si le rayon n'intersecte aucun objet
+		if (!traverse(current_ray, objects, nb_objects, rec)) {
+			return accumulation + attenuation * background_color(camera, current_ray.direction);
+		}
 
-    	// Actualisation de la couleur en fonction du matériau de l'objet intersecté
-        Color attenuation(0, 0, 0);
-        switch (rec.mat.type) {
-            case LAMBERTIAN:
-                rec.mat.lambertian.scatter(rec, attenuation, current_ray, rng);
-                color *= attenuation;
-                break;
-            case METAL: {
-                if (!rec.mat.metal.scatter(current_ray, rec, attenuation, current_ray, rng)) {
-                    return {0, 0, 0};
-                }
-                color *= attenuation;
-            }
-                break;
-            case DIELECTRIC:
-                rec.mat.dielectric.scatter(current_ray, rec, attenuation, current_ray);
-                color *= attenuation;
-                break;
-            case DIFFUSE_LIGHT:
-                return color * rec.mat.diffuse_light.emitted();
-        }
-    }
+		// Actualisation de la couleur en fonction du matériau de l'objet intersecté
+		Color fac_attenuation(0, 0, 0);
+		if (!rec.mat.scatter(current_ray, rec, fac_attenuation, current_ray, rng)) {
+			return accumulation + rec.mat.emitted() * attenuation;
+		}
 
-	// Si le rayon n'a atteint aucune source de lumière ni l'arrière-plan, le rayon est noir
-    return {0, 0, 0};
+		accumulation += rec.mat.emitted() * attenuation;
+		attenuation *= fac_attenuation;
+	}
+
+	// On retourne la couleur accumulée
+	return accumulation;
 }
 
 // Écrit l'image dans la sortie au format .ppm (version P3)

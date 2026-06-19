@@ -12,12 +12,9 @@
 
 // Exemple de lambertien
 inline void lambertian_example(Camera &cam, std::vector<Object> &world, std::string &title, bool &BVH) {
-    // Création d'un matériau de type lambertien
     const auto ground_material = create_lambertian(Color(0.39, 0.43, 0.78));
-    // Création d'une sphère de centre (0, -1000, 0) et de rayon 1000, dont la texture est celle créée ligne précédente, puis ajout de celle-ci à la scène
     world.push_back(create_sphere(Point3(0,-1000,0), 1000, ground_material));
 
-    // Créatoin de trois sphères dont les couleurs forment un dégradé, et ajout de celles-ci à la scène
     const auto c1 = Color(0.42, 0.24, 0.267);
     const auto c2 = Color(0.33, 0.6, 0.2);
     const auto material0 = create_lambertian(c1);
@@ -27,40 +24,22 @@ inline void lambertian_example(Camera &cam, std::vector<Object> &world, std::str
     world.push_back(create_sphere(Point3(0.,0.65,0.5), 0.6, material1));
     world.push_back(create_sphere(Point3(+1.3,0.65,0.5), 0.6, material2));
 
-    // Positionnement de la caméra
     cam.center = Point3(0., 0.5, -2.);
-    // Direction dans laquelle la caméra pointe
     cam.look_direction = Vec3(0., 0., 1.);
 
-    // Nombre de rayons par pixel : plus ce nombre sera grand, moins l'image sera bruitée (mais plus le temps d'exécution sera grand)
     cam.samples_per_pixel = 1000;
-    // Nombre maximum d'intersections avec des objets d'un rayon avant d'être abandonné : s'il est trop faible, l'image sera très sombre et granuleuse
     cam.max_depth = 20;
 
-    // Angle de vue de la caméra
     cam.v_fov = 60;
-    // Le haut pour la caméra (donc pour l'image générée)
     cam.up = Vec3(0,1,0);
 
-    // Ces paramètres servent à donner une profondeur de champ et simuler la mise au point d'une vraie caméra
-    // Règle la vitesse à laquelle le flou devient important lorsqu'on s'éloigne du point sur lequel la mise au point est fait
     cam.defocus_angle = 0.;
-    // Distance au centre de la caméra (dans la direction d'observation) du point sur lequel la mise au point est fait
     cam.focus_dist = 10.;
 
-    /* Type d'arrière-plan, définissant la couleur d'un rayon qui se perd à l'infini. Pour créer un nouvel arrière-plan, il faut aller dans Camera.hpp, puis :
-     * - ajouter un type dans BackgroundType
-     * - ajouter un cas à la fonction background_color
-     * - régler l'attribut cam.bg_type au type ajouté dans BackgroundType
-     * Par défaut, la couleur de l'arrière-plan renvoyé ne peut dépendre que des attributs enregistrés dans la caméra et de la direction du rayon qui se perd à l'infini.
-     * Cependant, pour ajouter d'autres facteurs pris en compte il suffit d'ajouter un paramètre à background_color et de mettre à jour l'appel à celle-ci dans les fonctions rayColorBVH et rayColorLin du fichier Raytracer.hpp
-     */
     cam.bg_type = BG_GRADIENT;
 
-    // Règle l'utilisation ou non de l'algorithme BVH. Globalement, c'est toujours une accélération sauf pour les scènes comportant très peu de primitives, et dans ce cas l'exécution sera rapide avec ou sans BVH. Je conseille donc de toujours l'activer.
-	BVH = true;
+	BVH = false;
 
-    // Chemin vers le fichier dans lequel l'image doit être enregistrée. Le fichier ne doit pas nécessairement exister, mais tous les dossiers dans le chemin si.
     title = "images/3LambertiansExample.ppm";
 }
 
@@ -348,23 +327,23 @@ inline void lambertianCube(Camera &cam, std::vector<Object> &world, std::string 
 // Test mesh
 inline void testMesh(Camera &cam, std::vector<Object> &world, std::string &title, bool &BVH) {
     const auto ground_material = create_lambertian(Color(225, 197, 123)/256);
-   	world.push_back(create_sphere(Point3(0,-100,0), 99, ground_material)); // dragon 99
+   	world.push_back(create_sphere(Point3(-600,-10600, 0), 10000, ground_material)); // dragon 0 -100 0 99 lucy -600 -10600 0 10000 aspasia 0 -100 0 100.5
 
-    const auto grey = create_lambertian(Color(0.42, 0.24, 0.267)); // dragon 0.42 0.24 0.267
+    const auto grey = create_lambertian(Color(0.42, 0.24, 0.267));
 
-    const auto mesh = MeshReader("meshs/thinker.obj", grey); // dragon 90 0 0
+    const auto mesh = MeshReader("meshs/lucy.obj", grey, -90, 0, 180); // dragon 90 0 0 lucy -90 0 180 aspasia 0 90 0 autres rien
     std::cout << "Conversion of the mesh to a list of triangles" << std::endl;
     mesh.convert(world);
 
-    cam.center = Point3(0, 1, 5); // lucy 500 400 1000 king 0 1 4.5 thinker 0 1 5 dragon 0 0.3 1
-    Point3 look_point = Point3(0, 0, 0); // lucy 500 400 1000 king 0 1 0 thinker 0 0 0 dragon 0 0.1 0
+    cam.center = Point3(-600, 300, 1000); // lucy -600 300 1000 king 0 1 4.5 thinker 0 1 5 dragon 0 0.3 1 aspasia 0.5 10
+    Point3 look_point = Point3(-600, 300, 0); // lucy -600 0 1000 king 0 1 0 thinker 0 0 0 dragon 0 0.1 0 aspasia 0 5.5 0
     cam.look_direction = look_point - cam.center;
 
     cam.samples_per_pixel = 1000;
     cam.max_depth = 50;
 
-    cam.v_fov = 20; // lucy 120 king 30 thinker 20 dragon 20
-    cam.up = Vec3(0, 1, 0); // lucy 0 0 1 king 0 1 0 thinker 0 1 0 dragon 0 1 0
+    cam.v_fov = 90; // lucy 90 king 30 thinker 20 dragon 20 aspasia 60
+    cam.up = Vec3(0, 1, 0);
 
     cam.defocus_angle = 0.;
     cam.focus_dist = 10.;
@@ -373,7 +352,7 @@ inline void testMesh(Camera &cam, std::vector<Object> &world, std::string &title
 
 	BVH = true;
 
-    title = "images/test_thinker.ppm";
+    title = "images/test_lucy.ppm";
 }
 
 // Test mesh
